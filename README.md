@@ -46,6 +46,11 @@
 以以上的代码为例, 可以对比Lisp 和Java 中函数式的写法.
 
 - 函数定义
+
       Lisp: (λ (m) (m x y))
       Java: m -> m.apply(x, y);
 - 函数应用(实参为函数)
+    
+      Lisp: (x (λ (a d) a))
+      Java: cons.apply((a, b) -> a)
+    
