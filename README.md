@@ -1,56 +1,51 @@
-# Bottle
+根据Alonzo Church 的lambda 算子的思路, 在Lisp 中序对的构造和选择函数, 可以使用以下的定义: 
 
-## Overview
+    (Define (cons x y)
+            (λ (m) (m x y)))
+    (Define (car x)
+            (x (λ (a d) a)))
+    (Define (cdr x)
+            (x (λ (a d) d)))
 
-Bottle is a **Zookeeper** lib for Java language.
+这种形式的定义, 仅仅使用了函数定义和函数调用, 而不借助任何的局部变量和赋值语句. 
 
+使用最简化的替代模型, 就可以推演出基本的运行步骤.
 
-
-**Note**: to run the unit test in the project, you should have a zookeeper instance running in your local, which can be accessed with '127.0.0.1:2181'.
-
-## API
-
-### 1. ZKBarrier
-
-like [CyclicBarrier](https://docs.oracle.com/javase/7/docs/api/java/util/concurrent/CyclicBarrier.html), ZKBarrier allows a set of thread to all wait for each other to reach a common barrier point.
-
-* `ZKBarrier` : a barrier with a group name and thread entry count.
-* `ZKBarrierEntry` : generated from a `ZKBarrier`, stands for a waiting group member.
-  * `enter()` : enter the group waiting.
-  * `leave()` : leave the group waiting.  Entries can resume  execution only after all entries have leaved.
-
-You can find a usage in [here](https://github.com/robynhan/Bottle/blob/master/src/test/java/org/robyn/lib/zookeeper/coredomain/ZKBarrierEntryTest.java).
-
-### 2. Queue
-
-Queue holds a theme, and producer can produce items to the theme, and the consumers can retrieve items from the theme.
-
-* `Queue` : a queue with a theme .
-  * `produce(int value)` :   put a item to the queue.
-  * `int consume()` : retrieve the frist item in the queue. 
-
-For a production-grade queue, you will need add count limit.
-
-You can find a usage in [here](https://github.com/robynhan/Bottle/blob/master/src/test/java/org/robyn/lib/zookeeper/coredomain/QueueTest.java).
+    (car (cons 35 47)) =>
+    (car ((λ (m) (m 35 47))))
+    ((λ (m) (m 35 47)) (λ (a d) a))
+    ((λ (a d) a) 35 47)
+    35
 
 
 
-## Developer Guide
+那么, 在Java 这种面向对象的语言中, 应该如何仅通过函数来定义此类函数呢?
 
-* Clone codebase
+      public static <T> Function<BiFunction<T, T, T>, T> cons(T x, T y) {
+        return m -> m.apply(x, y);
+      }
+    
+      public static <T> T car(Function<BiFunction<T, T, T>, T> cons) {
+        return cons.apply((a, b) -> a);
+      }
+    
+      public static <T> T cdr(Function<BiFunction<T, T, T>, T> cons) {
+        return cons.apply((a, b) -> b);
+      }
 
-```shell
-git clone https://github.com/robynhan/Bottle.git
-```
+对应的测试代码如下:
 
-* Generate your IDEA project files, and then start your work
+      @Test
+      public void test_should_cons_car_cdr() {
+        Function<BiFunction<Integer, Integer, Integer>, Integer> cons = cons(1, 2);
+    
+        Assert.assertThat(car(cons), is(1));
+        Assert.assertThat(cdr(cons), is(2));
+      }
 
-```shell
-./gradlew idea
-```
+以以上的代码为例, 可以对比Lisp 和Java 中函数式的写法.
 
-* Check your build before your commit
-
-```shell
-./gradlew check
-```
+- 函数定义
+      Lisp: (λ (m) (m x y))
+      Java: m -> m.apply(x, y);
+- 函数应用(实参为函数)
